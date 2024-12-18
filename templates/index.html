@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text to Speech and Speech to Text</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #f4f4f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: #fff;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            width: 80%;
+            max-width: 600px;
+            text-align: center;
+        }
+        h1 {
+            font-size: 2rem;
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        select, input[type="text"], input[type="range"] {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            margin-top: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .audio-player {
+            margin-top: 20px;
+            width: 100%;
+        }
+
+        .settings select {
+            width: 100%;
+            position: relative;
+            margin-top: 10px;
+            background: #fff;
+            border: 1px solid #ddd;
+            cursor: pointer;
+        }
+
+        #textInput {
+            width: 100%;
+            padding: 15px;
+            font-size: 16px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            margin-bottom: 20px;
+            height: 150px;
+            resize: vertical;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            text-align: left;
+            direction: ltr;
+        }
+
+        .output-box {
+            background-color: #f0f0f0;
+            border-radius: 5px;
+            padding: 20px;
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            font-size: 1.2rem;
+            color: #333;
+            min-height: 50px;
+            word-wrap: break-word;
+            text-align: left;
+        }
+
+        .recognized-text {
+            font-weight: bold;
+            color: #007bff;
+        }
+
+        .mode-button {
+            padding: 10px 20px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin: 5px;
+        }
+
+        .mode-button:hover {
+            background-color: #218838;
+        }
+
+        #settings, #speech-to-text, #text-to-speech{
+            display: none;
+        }
+
+        /* Миготлива кнопка */
+        .recording-button {
+            background-color: red;
+            animation: blink 1s infinite;
+            color: white;
+        }
+
+        @keyframes blink {
+            0% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+            100% {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Text to Speech and Speech to Text</h1>
+
+    <div class="form-group">
+        <button class="mode-button" onclick="toggleMode('text')">Text to Speech</button>
+        <button class="mode-button" onclick="toggleMode('voice')">Speech to Text</button>
+    </div>
+
+    <div id="text-to-speech">
+        <h2>Text to Speech</h2>
+        <textarea id="textInput" placeholder="Enter text to convert"></textarea>
+        <label for="speedRange">Speed:</label>
+        <input type="range" id="speedRange" min="0.5" max="2" step="0.1" value="1" />
+        <span id="speedValue">1.0</span>
+        <button onclick="convertTextToSpeech()">Convert</button>
+        <audio id="audioPlayer" class="audio-player" controls></audio>
+    </div>
+
+    <div id="speech-to-text">
+        <h2>Speech to Text</h2>
+        <button id="recordButton" onclick="startRecording()">Record Speech</button>
+        <div class="output-box">
+            <p id="recognizedText" class="recognized-text"></p>
+        </div>
+    </div>
+
+    <div id="settings">
+        <label for="languageSelect">Choose Language:</label>
+        <select id="languageSelect">
+            <option value="uk">Ukrainian</option>
+            <option value="en">English</option>
+            <option value="es">Spanish</option>
+            <option value="de">German</option>
+            <option value="fr">French</option>
+        </select>
+    </div>
+</div>
+
+<script>
+    function toggleMode(mode) {
+        if (mode === 'text') {
+            document.getElementById('text-to-speech').style.display = 'block';
+            document.getElementById('speech-to-text').style.display = 'none';
+            document.getElementById('settings').style.display = 'block';
+        } else {
+            document.getElementById('text-to-speech').style.display = 'none';
+            document.getElementById('speech-to-text').style.display = 'block';
+            document.getElementById('settings').style.display = 'none';
+        }
+    }
+
+    document.getElementById('speedRange').addEventListener('input', function(event) {
+        document.getElementById('speedValue').innerText = event.target.value;
+    });
+
+    function convertTextToSpeech() {
+        const text = document.getElementById('textInput').value;
+        const speed = document.getElementById('speedRange').value;
+        const language = document.getElementById('languageSelect').value;
+
+        fetch('/text_to_speech', {
+            method: 'POST',
+            body: new URLSearchParams({
+                text: text,
+                speed: speed,
+                language: language
+            }),
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'}
+        })
+        .then(response => response.json())
+        .then(data => {
+            const audioPlayer = document.getElementById('audioPlayer');
+            audioPlayer.src = data.audio_url;
+            audioPlayer.play();
+        });
+    }
+
+    function startRecording() {
+        const language = document.getElementById('languageSelect').value;
+
+        // Зміна стилів кнопки під час запису
+        const recordButton = document.getElementById('recordButton');
+        recordButton.classList.add('recording-button');
+        recordButton.textContent = "Recording...";
+
+        fetch('/speech_to_text', {
+            method: 'POST',
+            body: new URLSearchParams({
+                language: language
+            }),
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'}
+        })
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('recognizedText').textContent = data.recognized_text;
+
+            // Відновлення стилів кнопки після запису
+            recordButton.classList.remove('recording-button');
+            recordButton.textContent = "Record Speech";
+        });
+        
+    }
+    
+</script>
+
+</body>
+</html>
